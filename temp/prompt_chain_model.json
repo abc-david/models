@@ -1,0 +1,149 @@
+{
+  "name": "PromptChain",
+  "description": "Definition for a chain of prompt templates to be executed sequentially",
+  "fields": {
+    "name": {
+      "type": "str",
+      "args": {
+        "description": "Unique name for the prompt chain"
+      }
+    },
+    "description": {
+      "type": "str",
+      "args": {
+        "description": "Description of what this prompt chain accomplishes"
+      }
+    },
+    "chain_steps": {
+      "type": "List[Dict]",
+      "args": {
+        "description": "Ordered list of prompt steps in the chain",
+        "example": [
+          {
+            "prompt_name": "ContextExtractor",
+            "version_requirement": ">=1.0.0",
+            "assembly_order": "standard",
+            "output_key": "extracted_context",
+            "input_mapping": {}
+          },
+          {
+            "prompt_name": "TopicGenerator",
+            "version_requirement": ">=1.0.0",
+            "assembly_order": "agent",
+            "output_key": "topics",
+            "input_mapping": {
+              "context": "$outputs.extracted_context"
+            }
+          }
+        ]
+      }
+    },
+    "input_schema": {
+      "type": "Dict",
+      "args": {
+        "description": "Schema defining expected input fields for the chain",
+        "example": {
+          "query": "string",
+          "context_source": "string",
+          "max_topics": "integer"
+        }
+      }
+    },
+    "output_schema": {
+      "type": "Dict",
+      "args": {
+        "description": "Schema defining the expected output structure",
+        "example": {
+          "topics": "List[string]",
+          "context_used": "string",
+          "reasoning": "string"
+        }
+      }
+    },
+    "version_resolution": {
+      "type": "Dict",
+      "args": {
+        "description": "Strategy for resolving prompt template versions",
+        "example": {
+          "strategy": "minimum",
+          "fallback": "use_latest"
+        }
+      }
+    },
+    "execution_pattern": {
+      "type": "str",
+      "args": {
+        "description": "Pattern for executing the chain steps",
+        "default": "sequential",
+        "allowed_values": ["sequential", "branching", "parallel"]
+      }
+    },
+    "version": {
+      "type": "str",
+      "args": {
+        "description": "Version of the prompt chain",
+        "default": "1.0.0"
+      }
+    },
+    "created_at": {
+      "type": "datetime",
+      "args": {
+        "description": "Creation timestamp"
+      }
+    },
+    "updated_at": {
+      "type": "datetime",
+      "args": {
+        "description": "Last update timestamp"
+      }
+    },
+    "tags": {
+      "type": "List[str]",
+      "args": {
+        "description": "List of tags for categorization",
+        "default_factory": "list"
+      }
+    }
+  },
+  "metadata_schema": {
+    "required": [
+      "name",
+      "description",
+      "chain_steps",
+      "version"
+    ],
+    "recommended": [
+      "input_schema",
+      "output_schema",
+      "version_resolution"
+    ],
+    "chain_execution_patterns": {
+      "sequential": {
+        "description": "Execute prompts one after another, passing outputs as inputs to the next step",
+        "behavior": "Each step must complete before the next begins"
+      },
+      "branching": {
+        "description": "Chain can split based on conditions from previous outputs",
+        "behavior": "Define conditions in input_mapping to determine which branch to take"
+      },
+      "parallel": {
+        "description": "Multiple prompts execute simultaneously with the same input",
+        "behavior": "Define parallel steps that don't depend on each other's outputs"
+      }
+    }
+  },
+  "validators": [
+    {
+      "name": "chain_steps_validation",
+      "fields": ["chain_steps"],
+      "pre": false,
+      "code": "def chain_steps_validation(cls, v):\n    if not isinstance(v, list) or len(v) == 0:\n        raise ValueError('chain_steps must be a non-empty list')\n    for step in v:\n        if not isinstance(step, dict):\n            raise ValueError('Each chain step must be a dictionary')\n        if 'prompt_name' not in step:\n            raise ValueError('Each chain step must include prompt_name')\n    return v"
+    },
+    {
+      "name": "input_mapping_validation",
+      "fields": ["chain_steps"],
+      "pre": false,
+      "code": "def input_mapping_validation(cls, v):\n    if not isinstance(v, list) or len(v) == 0:\n        return v\n    for i, step in enumerate(v):\n        if i > 0 and 'input_mapping' in step:\n            for key, value in step['input_mapping'].items():\n                if isinstance(value, str) and value.startswith('$outputs.') and value[9:] not in [s['output_key'] for s in v[:i]]:\n                    raise ValueError(f'Input mapping refers to non-existent output key: {value[9:]}')\n    return v"
+    }
+  ]
+} 

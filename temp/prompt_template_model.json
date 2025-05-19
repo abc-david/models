@@ -1,0 +1,112 @@
+{
+    "name": "PromptTemplate",
+    "description": "Definition for structured prompt templates to be used in LLM interactions",
+    "fields": {
+        "name": {
+            "type": "str",
+            "args": {
+                "description": "Unique name for the prompt template"
+            }
+        },
+        "description": {
+            "type": "str",
+            "args": {
+                "description": "Description of what this prompt template is used for"
+            }
+        },
+        "system_message": {
+            "type": "dict",
+            "args": {
+                "description": "System message components for the prompt"
+            }
+        },
+        "human_message": {
+            "type": "dict",
+            "args": {
+                "description": "Human message components for the prompt"
+            }
+        },
+        "version": {
+            "type": "str",
+            "args": {
+                "description": "Version of the prompt template",
+                "default": "1.0"
+            }
+        },
+        "created_at": {
+            "type": "datetime",
+            "args": {
+                "description": "Creation timestamp"
+            }
+        },
+        "updated_at": {
+            "type": "datetime",
+            "args": {
+                "description": "Last update timestamp"
+            }
+        },
+        "tags": {
+            "type": "List[str]",
+            "args": {
+                "description": "List of tags for categorization",
+                "default_factory": "list"
+            }
+        }
+    },
+    "metadata_schema": {
+        "required": [
+            "name", 
+            "system_message"
+        ],
+        "recommended": [
+            "description", 
+            "version"
+        ],
+        "system_message_schema": {
+            "components": [
+                "positioning_sentence",
+                "agent_role",
+                "agent_task",
+                "agent_goal",
+                "agent_tools",
+                "key_information",
+                "context_placeholder",
+                "agent_response",
+                "additional_instructions",
+                "closing_instructions",
+                "output_format"
+            ],
+            "required": [
+                "agent_role",
+                "agent_task",
+                "agent_goal",
+                "key_information",
+                "context_placeholder",
+                "agent_response",
+                "output_format"
+            ]
+        },
+        "human_message_schema": {
+            "components": [
+                "focused_question"
+            ],
+            "required": [
+                "focused_question"
+            ]
+        }
+    },
+    "validators": [
+        {
+            "name": "name_not_empty",
+            "fields": ["name"],
+            "pre": true,
+            "code": "def name_not_empty(cls, v):\n    if not v.strip():\n        raise ValueError('Template name cannot be empty')\n    return v"
+        },
+        {
+            "name": "system_message_validation",
+            "fields": ["system_message"],
+            "pre": false,
+            "code": "def system_message_validation(cls, v):\n    if not isinstance(v, dict):\n        raise ValueError('system_message must be a dictionary')\n    required_keys = ['agent_role', 'agent_task', 'agent_goal', 'key_information', 'context_placeholder', 'agent_response', 'output_format']\n    missing = [key for key in required_keys if key not in v]\n    if missing:\n        raise ValueError(f'Missing required system_message components: {missing}')\n    return v"
+        }
+    ]
+} 

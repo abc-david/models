@@ -1,0 +1,231 @@
+{
+  "name": "MasterPromptTemplate",
+  "description": "Definition for a comprehensive prompt template with system and human message components",
+  "fields": {
+    "name": {
+      "type": "str",
+      "args": {
+        "description": "Unique name for the prompt template"
+      }
+    },
+    "description": {
+      "type": "str",
+      "args": {
+        "description": "Description of what this prompt accomplishes"
+      }
+    },
+    "system_message": {
+      "type": "Dict",
+      "args": {
+        "description": "System message components",
+        "components": {
+          "positioning_sentence": {
+            "type": "str",
+            "args": {
+              "description": "Initial sentence positioning the LLM",
+              "purpose": "Sets the foundation for the LLM's understanding of its role",
+              "example": "You are using Claude, a helpful AI assistant created by Anthropic."
+            }
+          },
+          "agent_role": {
+            "type": "str",
+            "args": {
+              "description": "Role the LLM should assume",
+              "purpose": "Defines the specific perspective and expertise the LLM should adopt",
+              "example": "Your role is that of an expert content strategist with deep knowledge of SEO principles and content marketing."
+            }
+          },
+          "agent_task": {
+            "type": "str",
+            "args": {
+              "description": "The specific task the LLM is being asked to perform",
+              "purpose": "Clearly defines the action the LLM should take",
+              "example": "Analyze the provided article to identify key topics, determine search intent, and suggest content improvements."
+            }
+          },
+          "agent_goal": {
+            "type": "str",
+            "args": {
+              "description": "The overall goal or objective of the task",
+              "purpose": "Provides broader context for why the task matters",
+              "example": "Your goal is to help the user increase the article's search visibility while maintaining its educational value."
+            }
+          },
+          "agent_tools": {
+            "type": "List[str]",
+            "args": {
+              "description": "Tools or capabilities the LLM can use",
+              "purpose": "Describes resources or methods available to the LLM",
+              "example": ["SEO keyword research", "Topic clustering", "Readability analysis", "Content gap identification"]
+            }
+          },
+          "key_information": {
+            "type": "str",
+            "args": {
+              "description": "Critical information the LLM needs to know",
+              "purpose": "Provides essential background knowledge or constraints",
+              "example": "The article is targeting beginners in machine learning who have programming experience but limited mathematical background."
+            }
+          },
+          "context_placeholder": {
+            "type": "str",
+            "args": {
+              "description": "Placeholder for dynamic context to be injected",
+              "purpose": "Marks where retrieved or dynamically generated context should be inserted",
+              "example": "[CONTEXT: The following is the article to analyze: {context}]"
+            }
+          },
+          "controlled_context_placeholder": {
+            "type": "str",
+            "args": {
+              "description": "Placeholder for manually controlled context injection",
+              "purpose": "Enables fine-grained control over context inserted by the application",
+              "example": "[CONTROLLED CONTEXT: Specific guidelines for this article: {controlled_context}]"
+            }
+          },
+          "additional_instructions": {
+            "type": "str",
+            "args": {
+              "description": "Any additional instructions for the LLM",
+              "purpose": "Provides supplementary guidance or constraints",
+              "example": "Ensure your recommendations are actionable and suitable for implementation by someone with the user's stated expertise level."
+            }
+          },
+          "agent_response": {
+            "type": "str",
+            "args": {
+              "description": "Format for the LLM's response",
+              "purpose": "Structures how the LLM should present its output",
+              "example": "Provide your analysis in these sections: 1) Key Topics Identified, 2) Search Intent Analysis, 3) Content Improvement Recommendations."
+            }
+          },
+          "output_format": {
+            "type": "str",
+            "args": {
+              "description": "Technical format for the output",
+              "purpose": "Specifies exact formatting requirements for parsing",
+              "example": "Format your recommendations as a JSON object with the following structure: { \"topics\": [], \"intent\": \"\", \"recommendations\": [] }"
+            }
+          },
+          "closing_instructions": {
+            "type": "str",
+            "args": {
+              "description": "Final instructions before the human message",
+              "purpose": "Offers final guidance or reinforces key aspects of the task",
+              "example": "Remember to keep suggestions practical and aligned with the user's goals rather than generic SEO advice."
+            }
+          }
+        }
+      }
+    },
+    "human_message": {
+      "type": "Dict",
+      "args": {
+        "description": "Human message components",
+        "components": {
+          "focused_question": {
+            "type": "str",
+            "args": {
+              "description": "The specific question or instruction from the human",
+              "purpose": "Provides the specific prompt or question from the user",
+              "example": "Please analyze this article about neural networks and suggest how I can improve it for better search visibility while keeping it accessible to beginners."
+            }
+          }
+        }
+      }
+    },
+    "version": {
+      "type": "str",
+      "args": {
+        "description": "Version of the prompt template",
+        "default": "1.0"
+      }
+    },
+    "created_at": {
+      "type": "datetime",
+      "args": {
+        "description": "Creation timestamp"
+      }
+    },
+    "updated_at": {
+      "type": "datetime",
+      "args": {
+        "description": "Last update timestamp"
+      }
+    },
+    "tags": {
+      "type": "List[str]",
+      "args": {
+        "description": "List of tags for categorization",
+        "default_factory": "list"
+      }
+    }
+  },
+  "metadata_schema": {
+    "required": [
+      "name",
+      "description",
+      "version"
+    ],
+    "recommended": [
+      "system_message.positioning_sentence",
+      "system_message.agent_role",
+      "system_message.agent_task",
+      "human_message.focused_question"
+    ],
+    "assembly_orders": {
+      "standard": [
+        "system_message.positioning_sentence",
+        "system_message.agent_role",
+        "system_message.agent_task",
+        "system_message.agent_goal",
+        "system_message.agent_tools",
+        "system_message.key_information",
+        "system_message.context_placeholder",
+        "system_message.controlled_context_placeholder",
+        "system_message.additional_instructions",
+        "system_message.agent_response",
+        "system_message.output_format",
+        "system_message.closing_instructions",
+        "human_message.focused_question"
+      ],
+      "chatbot": [
+        "system_message.positioning_sentence",
+        "system_message.agent_role",
+        "system_message.agent_task",
+        "system_message.agent_goal",
+        "human_message.focused_question",
+        "system_message.agent_tools",
+        "system_message.key_information",
+        "system_message.context_placeholder",
+        "system_message.controlled_context_placeholder",
+        "system_message.additional_instructions",
+        "system_message.agent_response",
+        "system_message.output_format",
+        "system_message.closing_instructions"
+      ],
+      "agent": [
+        "system_message.positioning_sentence",
+        "system_message.agent_role",
+        "system_message.agent_task",
+        "system_message.agent_tools",
+        "system_message.additional_instructions",
+        "system_message.agent_response",
+        "human_message.focused_question"
+      ]
+    },
+    "resolution": {
+      "system_message.agent_tools": "py_vectorbase_injection",
+      "system_message.context_placeholder": "dynamic_context_injection",
+      "system_message.controlled_context_placeholder": "controlled_context_injection"
+    }
+  },
+  "validators": [
+    {
+      "name": "components_validation",
+      "fields": ["system_message", "human_message"],
+      "pre": false,
+      "code": "def components_validation(cls, values):\n    if not values.get(\"system_message\") and not values.get(\"human_message\"):\n        raise ValueError(\"At least one of system_message or human_message must be provided\")\n    return values"
+    }
+  ]
+} 
