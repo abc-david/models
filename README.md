@@ -19,6 +19,7 @@ services/models/
 ├── __init__.py             # Exports key components
 ├── orchestrator.py         # Central API for accessing all functionality
 ├── db_schema_inspector.py  # Tools for database schema verification 
+├── registrar.py            # Model registration and database operations
 │
 ├── core/                   # Core model definitions
 │   ├── base_model.py       # Base model classes
@@ -41,9 +42,7 @@ services/models/
 │   └── ...                 # Functionality for exporting model data
 │
 └── utils/                  # Utilities and tools
-    ├── verify_models.py    # Schema verification utility
-    ├── model_db_integration.py # Database integration examples
-    └── README.md           # Documentation for utilities
+    └── model_db_integration.py # Database integration examples
 ```
 
 ## Storage Subsystem
@@ -56,6 +55,8 @@ The storage subsystem (`services/models/storage/`) provides a comprehensive solu
 - **Project Context Storage**: Contextual storage specific to projects and workflow stages
 
 The storage system is built on the asynchronous database layer using `asyncpg` and implements advanced features like transaction management, batched operations, and cross-references between objects.
+
+For comprehensive documentation of the storage subsystem, refer to the [Storage README](storage/README.md).
 
 ## Usage
 
@@ -125,6 +126,73 @@ article = await db_storage.get_object(result)
 await db_storage.close()
 ```
 
+#### Advanced Storage Usage
+
+The storage system provides various options for different use cases:
+
+```python
+# Using vector storage for semantic search
+from services.models.storage.vector_storage import VectorObjectStorage
+
+vector_storage = VectorObjectStorage()
+
+# Store content with vector embedding
+vector_id = await vector_storage.store_object(
+    content="This is a sample article about Python programming",
+    metadata={"category": "programming", "tags": ["python", "tutorial"]},
+    embed=True  # Generate embedding for the content
+)
+
+# Perform semantic search
+similar_items = await vector_storage.search_similar(
+    query="How to code in Python",
+    limit=5,
+    score_threshold=0.7
+)
+
+# Using cached storage for performance
+from services.models.storage.cached_storage import CachedObjectStorage
+
+cached_storage = CachedObjectStorage()
+
+# Store with caching enabled
+await cached_storage.store_object(
+    content_type="product",
+    product_id="12345",
+    name="Example Product",
+    price=99.99,
+    cache_ttl=3600  # Cache for 1 hour
+)
+
+# Batch operations
+await db_storage.batch_store([
+    {"content_type": "comment", "text": "Great article!", "author_id": "user1"},
+    {"content_type": "comment", "text": "Thanks for sharing", "author_id": "user2"},
+    {"content_type": "comment", "text": "Very helpful", "author_id": "user3"}
+])
+
+# Transaction support
+async with db_storage.transaction() as tx:
+    # All operations within this block are part of the same transaction
+    article_id = await db_storage.store_object(
+        content_type="article",
+        title="Transaction Example",
+        content={"body": "Transaction content..."},
+        transaction=tx
+    )
+    
+    await db_storage.store_object(
+        content_type="comment",
+        article_id=article_id,
+        text="First comment",
+        transaction=tx
+    )
+    # Transaction automatically commits if no exceptions occur
+    # Or rolls back if an exception is raised
+```
+
+For detailed configuration options, implementation details, and best practices, refer to the [Storage README](storage/README.md).
+
 ### Using the Orchestrator
 
 The orchestrator is the central point for accessing all models functionality:
@@ -148,14 +216,39 @@ model_info = await orchestrator.get_model_info("topic_map")
 verification_results = await orchestrator.verify_db_schemas("public")
 ```
 
-## Utilities
+### Using the Model Registrar 
 
-The Models Service includes several utilities to help with common tasks:
+The ModelRegistrar handles registration, retrieval, and management of model definitions in the database:
 
-1. **verify_models.py**: A command-line utility for verifying model schemas against database schemas
-2. **model_db_integration.py**: Examples of integrating model validation with database operations
+```python
+from services.models.registrar import ModelRegistrar
 
-See the [utilities documentation](utils/README.md) for more information.
+# Create a registrar instance
+registrar = ModelRegistrar()
+
+# Register a model
+model_id = await registrar.register_model_in_db(
+    model_name="ArticleModel",
+    model_definition={
+        "fields": {
+            "title": {"type": "str"},
+            "content": {"type": "str"}
+        }
+    },
+    description="Article content model",
+    model_type="alpha",
+    version="1.0"
+)
+
+# List registered models
+models = await registrar.list_models_in_db()
+
+# Get a model definition
+model = await registrar.get_model_definition_from_db("ArticleModel")
+
+# Always close connections when done
+await registrar.close()
+```
 
 ## Development
 
@@ -168,7 +261,7 @@ When developing new models:
 
 ## Testing
 
-For testing, the Models Service includes tools for verifying schema compatibility and generating test data. See the testing documentation for more information.
+For testing, the Models Service includes tools for verifying schema compatibility and generating test data. The `testing` directory contains utilities to assist with testing model operations.
 
 ## Integration Points
 
