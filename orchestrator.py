@@ -14,12 +14,13 @@ with the models service.
 """
 
 import logging
+import config.settings
 from typing import Dict, List, Any, Optional, Type, Union
 
 from services.models.core.base_model import BaseModel
 from services.models.core.model_registry import ModelRegistry
 from services.models.validation.validator import ModelValidator, ValidationResult
-from services.models.utils.model_registrar import ModelRegistrar
+from services.models.registrar import ModelRegistrar
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +36,23 @@ class ModelOrchestrator:
     - Integration with database
     """
     
-    def __init__(self):
-        """Initialize the model orchestrator."""
+    def __init__(self, test_mode: Optional[str] = None):
+        """
+        Initialize the model orchestrator.
+        
+        Args:
+            test_mode: Test mode to use ('mock', 'e2e', or None for production)
+        """
+        # Store the previous test mode so we can restore it later
+        self._previous_test_mode = config.settings.TEST_MODE
+        
+        # Set the test mode in the global settings if specified
+        if test_mode:
+            config.settings.TEST_MODE = test_mode
+            
+        self.test_mode = test_mode
         self.validator = ModelValidator()
-        self.model_registrar = ModelRegistrar()
+        self.model_registrar = ModelRegistrar(test_mode=test_mode)
         
     async def get_model(self, model_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -122,8 +136,12 @@ class ModelOrchestrator:
         Raises:
             ValueError: If the model definition is invalid
         """
-        return await self.model_registrar.register_model(
-            name, definition, description, model_type, version, sync_with_registry
+        return await self.model_registrar.register_model_in_db(
+            model_name=name,
+            model_definition=definition,
+            description=description,
+            model_type=model_type,
+            version=version
         )
     
     async def list_models_in_db(self) -> List[Dict[str, Any]]:
@@ -133,7 +151,7 @@ class ModelOrchestrator:
         Returns:
             List of model dictionaries
         """
-        return await self.model_registrar.list_registered_models()
+        return await self.model_registrar.list_models_in_db()
     
     async def get_model_definition_from_db(self, model_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -145,7 +163,7 @@ class ModelOrchestrator:
         Returns:
             Model definition dictionary, or None if not found
         """
-        return await self.model_registrar.get_model_definition(model_name)
+        return await self.model_registrar.get_model_definition_from_db(model_name)
     
     async def verify_db_schema(
         self,
@@ -165,7 +183,7 @@ class ModelOrchestrator:
         # Will be implemented after moving schema_inspector functionality
         from services.models.db_schema_inspector import SchemaInspector
         
-        inspector = SchemaInspector()
+        inspector = SchemaInspector(test_mode=self.test_mode)
         try:
             return await inspector.verify_model_schema(db_schema, model_name)
         finally:
@@ -184,7 +202,7 @@ class ModelOrchestrator:
         # Will be implemented after moving schema_inspector functionality
         from services.models.db_schema_inspector import SchemaInspector
         
-        inspector = SchemaInspector()
+        inspector = SchemaInspector(test_mode=self.test_mode)
         try:
             models = await self.list_models()
             results = {}
@@ -195,7 +213,24 @@ class ModelOrchestrator:
             return results
         finally:
             await inspector.close()
+            
+    async def close(self) -> None:
+        """Close any open resources and restore original test mode."""
+        await self.model_registrar.close()
+        
+        # Restore the original test mode
+        config.settings.TEST_MODE = self._previous_test_mode
 
 
-# Singleton instance for easy import
-orchestrator = ModelOrchestrator() 
+# Create function to get orchestrator instance
+def get_orchestrator(test_mode: Optional[str] = None) -> ModelOrchestrator:
+    """
+    Get a model orchestrator instance with the specified test mode.
+    
+    Args:
+        test_mode: Test mode to use ('mock', 'e2e', or None for production)
+        
+    Returns:
+        ModelOrchestrator instance
+    """
+    return ModelOrchestrator(test_mode=test_mode) 

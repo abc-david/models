@@ -1,31 +1,10 @@
 # Models Service Utilities
 
-This directory contains utilities for working with the models service, including tools for schema verification, database integration, and model visualization.
+This directory contains utilities for working with the models service, including tools for database integration and model examples.
 
 ## Available Utilities
 
-### 1. Model Schema Verification (`verify_models.py`)
-
-A command-line utility for verifying model schemas against database schemas, identifying missing tables and columns, and generating SQL statements.
-
-```bash
-# List all available models
-python -m services.models.utils.verify_models list
-
-# Verify a specific model against a database schema
-python -m services.models.utils.verify_models verify --model topic_map --schema public
-
-# Verify all models against a database schema
-python -m services.models.utils.verify_models verify --schema content_project
-
-# Generate SQL for a model
-python -m services.models.utils.verify_models sql --model topic_map
-
-# Find missing tables in a schema
-python -m services.models.utils.verify_models missing --schema content_project
-```
-
-### 2. Model-Database Integration (`model_db_integration.py`)
+### Model-Database Integration (`model_db_integration.py`)
 
 A utility demonstrating integration between model validation and database operations, showing how to effectively use both services together.
 
@@ -38,6 +17,23 @@ python -m services.models.utils.model_db_integration fetch --model topic_map --i
 
 # Verify a model's schema against the database and optionally repair it
 python -m services.models.utils.model_db_integration verify --model topic_map --schema public --repair
+```
+
+## Schema Verification
+
+For schema verification functionality, please use the `SchemaInspector` class from the main models directory:
+
+```python
+from services.models import SchemaInspector
+
+# Create an inspector
+inspector = SchemaInspector()
+
+# Verify a model's schema against a database schema
+result = await inspector.verify_model_schema("public", "topic_map")
+
+# Always close the inspector when done
+await inspector.close()
 ```
 
 ## Best Practices

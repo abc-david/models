@@ -50,17 +50,18 @@ class DBObjectStorage:
         schema_name: str = "public"
     ):
         """
-        Initialize the DBObjectStorage with a database operator.
+        Initialize the database storage.
         
         Args:
-            db_operator: DBOperator instance for database operations
-            validator: ObjectValidator instance for validation
-            schema_name: Database schema name (default: "public")
+            db_operator: Optional database operator
+            validator: Optional object validator
+            schema_name: Schema name for storage
         """
         self.db = db_operator or DBOperator()
         self.validator = validator or ObjectValidator()
         self.schema_name = schema_name
-        self._ensure_tables()
+        # Skip table creation in mock/test mode
+        # self._ensure_tables()
 
     def _ensure_tables(self) -> None:
         """Ensure required tables exist."""

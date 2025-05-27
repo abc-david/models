@@ -15,7 +15,7 @@ from pathlib import Path
 parent_dir = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(parent_dir))
 
-from services.models.utils.model_registrar import ModelRegistrar
+from services.models.registrar import ModelRegistrar
 
 logging.basicConfig(
     level=logging.INFO,

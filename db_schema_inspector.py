@@ -15,6 +15,7 @@ import json
 import logging
 from typing import Dict, List, Any, Optional, Set, Tuple
 
+import config.settings
 from services.database import DBConnector, SchemaSetup
 from services.models.core.model_registry import ModelRegistry
 
@@ -32,15 +33,31 @@ class SchemaInspector:
     4. Support test environment setup
     """
     
-    def __init__(self):
-        """Initialize the schema inspector."""
+    def __init__(self, test_mode: Optional[str] = None):
+        """
+        Initialize the schema inspector.
+        
+        Args:
+            test_mode: Test mode to use ('mock', 'e2e', or None for production)
+        """
+        # Store the previous test mode so we can restore it later
+        self._previous_test_mode = config.settings.TEST_MODE
+        
+        # Set the test mode in the global settings if specified
+        if test_mode:
+            config.settings.TEST_MODE = test_mode
+            
+        self.test_mode = test_mode
         self.db = DBConnector()
         self.setup = SchemaSetup()
     
-    async def close(self):
-        """Close database connections."""
+    async def close(self) -> None:
+        """Close database connections and restore original test mode."""
         await self.db.close()
         await self.setup.close()
+        
+        # Restore the original test mode
+        config.settings.TEST_MODE = self._previous_test_mode
         
     async def inspect_schema(self, schema_name: str) -> Dict[str, Any]:
         """

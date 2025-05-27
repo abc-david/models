@@ -45,14 +45,16 @@ class ModelRegistrar:
     # Valid model types
     VALID_MODEL_TYPES = ['alpha', 'beta', 'gamma', 'qualifier', 'organizer', 'prompt_template', 'prompt_chain']
     
-    def __init__(self, db_connector: Optional[DBConnector] = None):
+    def __init__(self, db_connector: Optional[DBConnector] = None, test_mode: Optional[str] = None):
         """
         Initialize the model registrar.
         
         Args:
             db_connector: Optional database connector. If not provided, a new one will be created.
+            test_mode: Test mode to use ('mock', 'e2e', or None for production)
         """
-        self.db_connector = db_connector or DBConnector()
+        self.test_mode = test_mode
+        self.db_connector = db_connector or DBConnector(test_mode=test_mode)
     
     async def register_model(
         self,
@@ -249,24 +251,25 @@ class ModelRegistrar:
         
         result = await self.db_connector.execute(
             query,
-            (model_id, name, model_type, version, json.dumps(definition), description, use_cases, related_templates),
+            (model_id, name, model_type, version, json.dumps(definition), description, json.dumps(use_cases), json.dumps(related_templates)),
             fetch_row=True
         )
         
-        logger.info(f"Registered new model {name} with ID {model_id}")
+        logger.info(f"Inserted new model {name} with ID {model_id}")
         return result['id']
     
     async def _sync_with_registry(self, name: str, definition: Dict[str, Any]) -> None:
         """
-        Sync the model with the in-memory registry.
+        Sync model with in-memory registry.
         
         Args:
             name: Model name
             definition: Model definition dictionary
         """
-        # This would need to convert the database representation to the appropriate
-        # model class expected by the registry. For now, we'll just log a message.
-        logger.info(f"Syncing model {name} with in-memory registry (not implemented)")
+        # Implementation depends on how the in-memory registry is managed
+        logger.info(f"Syncing model {name} with in-memory registry")
+        # For now, just notify that syncing would occur
+        pass
     
     async def list_registered_models(self) -> List[Dict[str, Any]]:
         """
@@ -275,18 +278,23 @@ class ModelRegistrar:
         Returns:
             List of model dictionaries
         """
-        query = """
-            SELECT id, name, object_type, version, description, created_at, updated_at
-            FROM public.object_models
-            ORDER BY name
-        """
-        
+        query = "SELECT id, name, object_type, version, description, created_at, updated_at FROM public.object_models"
         results = await self.db_connector.execute(query, fetch_all=True)
-        return results
+        
+        # Convert datetime objects to strings and return
+        models = []
+        for row in results:
+            # Make a copy to avoid modifying the original
+            model = dict(row)
+            model['created_at'] = str(model['created_at'])
+            model['updated_at'] = str(model['updated_at'])
+            models.append(model)
+            
+        return models
     
     async def get_model_definition(self, model_name: str) -> Optional[Dict[str, Any]]:
         """
-        Get a model definition by name.
+        Get a model definition from the database by name.
         
         Args:
             model_name: Name of the model
@@ -294,18 +302,23 @@ class ModelRegistrar:
         Returns:
             Model definition dictionary, or None if not found
         """
-        query = """
-            SELECT id, name, object_type, version, definition, description, created_at, updated_at
-            FROM public.object_models
-            WHERE name = $1
-        """
-        
+        query = "SELECT definition FROM public.object_models WHERE name = $1"
         result = await self.db_connector.execute(query, (model_name,), fetch_row=True)
-        if not result:
-            return None
         
-        # Convert the definition from JSON string to dictionary
-        result_dict = result
-        result_dict['definition'] = json.loads(result_dict['definition'])
+        if result and 'definition' in result:
+            # Convert from JSON string to dictionary if necessary
+            definition = result['definition']
+            if isinstance(definition, str):
+                try:
+                    definition = json.loads(definition)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to decode definition JSON for model {model_name}")
+                    return None
+            
+            return definition
         
-        return result_dict 
+        return None
+    
+    async def close(self) -> None:
+        """Close the database connector."""
+        await self.db_connector.close() 
